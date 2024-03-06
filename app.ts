@@ -26,7 +26,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/users", authMiddleware, userRoutes);
 app.get("/", async (req, res, next) => {
-  res.send({ message: "Awesome it works  automatically🐻" });
+  res.send({ message: "it works!" });
 });
 
 function authMiddleware(request: express.Request, response: express.Response, next: express.NextFunction) {
