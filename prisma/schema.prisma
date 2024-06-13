@@ -1,182 +1,31 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id                 String            @id @default(uuid())
-  thirdPartyId       String            @unique // Store the ID or Token from the third-party provider
-  accessToken        String
-  email              String?
-  firstName          String?
-  lastName           String?
-  thirdPartyProvider String? // Store the provider name (e.g., "Google", "Facebook")
-  profilePictureUrl  String?
-  spokenLanguage     String?           @default("english_us")
-  learningLanguage   String?
-  UserProgress       UserProgress[]
-  SpokenLanguage     SpokenLanguage?   @relation(fields: [spokenLanguage], references: [name])
-  LearningLanguage   LearningLanguage? @relation(fields: [learningLanguage], references: [name])
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  id                    String   @id @default(uuid())
+  thirdPartyId          String?  @unique
+  thirdPartyAccessToken String?  @unique
+  role                  Role     @default(user)
+  isValidated           Boolean  @default(false)
+  email                 String?  @unique
+  hashedPassword        String?
+  firstName             String?
+  lastName              String?
+  imageUrl              String?
+  thirdPartyProvider    String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([email, thirdPartyId])
 }
 
-model Language {
-  id               String            @id @default(uuid())
-  name             String            @unique
-  type             String
-  words            Word[]
-  SpokenLanguage   SpokenLanguage?
-  LearningLanguage LearningLanguage?
-  languageType     LanguageType      @relation(fields: [type], references: [type])
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-}
-
-model LanguageType {
-  id        String     @id @default(uuid())
-  type      String     @unique
-  Language  Language[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-}
-
-model SpokenLanguage {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  users     User[]
-  language  Language @relation(fields: [name], references: [name])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model LearningLanguage {
-  id            String          @id @default(uuid())
-  name          String          @unique
-  users         User[] // Many-to-Many relationship with the User model
-  LearningLevel LearningLevel[]
-  language      Language        @relation(fields: [name], references: [name])
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-}
-
-model UserProgress {
-  id            String          @id @default(uuid())
-  userId        String          @unique
-  learningLevel LearningLevel[]
-  achievements  Achievement[]
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model LearningLevel {
-  id               String           @id @default(uuid())
-  userId           String?
-  learningLanguage String
-  level            Int              @default(1)
-  UserProgress     UserProgress?    @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  LearningLanguage LearningLanguage @relation(fields: [learningLanguage], references: [name]) // A field to store the name of the learning language
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-
-  @@unique([userId, learningLanguage])
-}
-
-model Achievement {
-  id           String        @id @default(uuid())
-  userId       String?
-  name         String        @unique
-  level        Int           @default(1)
-  UserProgress UserProgress? @relation(fields: [userId], references: [userId], onDelete: Cascade)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-}
-
-model Category {
-  id        String   @id @default(uuid())
-  name      String
-  branches  Branch[] // Define a relation to the Word model to associate words with categories
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Branch {
-  id            String   @id @default(uuid())
-  categoryId    String
-  name          String
-  modelFileName String // Store the 3D model file name or reference for the category
-  words         Word[] // Define a relation to the Word model to associate words with categories
-  category      Category @relation(fields: [categoryId], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-}
-
-model Word {
-  id                     String            @id @default(uuid())
-  branchId               String?
-  languageId             String
-  synonymId              String?
-  translationId          String?
-  value                  String            @unique
-  type                   String // Type of the word (e.g., noun, verb, adjective)
-  level                  Int               @default(1) // European language proficiency level (1 to 3)
-  definition             String? // Definition or description of the word
-  modelFileName          String? // Store the 3D model file name or reference
-  voiceRecordingFileName String? // Store the voice recording file name or reference
-  exampleSentences       ExampleSentence[] // One-to-Many relationship to ExampleSentence model
-  verbInfo               VerbInfo? // Additional information for verbs
-  Branch                 Branch?           @relation(fields: [branchId], references: [id])
-  language               Language          @relation(fields: [languageId], references: [id])
-  Translation            Translation?      @relation(fields: [translationId], references: [id])
-  Synonym                Synonym?          @relation(fields: [synonymId], references: [id])
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
-}
-
-model Translation {
-  id           String   @id @default(uuid())
-  translations Word[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
-
-model Synonym {
-  id        String   @id @default(uuid())
-  synonyms  Word[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model ExampleSentence {
-  id        String   @id @default(uuid())
-  wordId    String
-  sentence  String
-  word      Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model VerbInfo {
-  id                 String   @id @default(uuid())
-  wordId             String   @unique
-  conjugationType    String // Conjugation type for verbs (e.g., regular, irregular)
-  tense              String? // Tense of the verb (e.g., past, present, future)
-  conjugationExample String? // Example of verb conjugation
-  irregularity       String? // Description of any irregularities in verb conjugation
-  word               Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-}
-
-model GrammarLesson {
-  id         String   @id @default(uuid())
-  lessonName String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+enum Role {
+  user
+  admin
 }
